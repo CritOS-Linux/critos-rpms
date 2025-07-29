@@ -31,7 +31,6 @@ jobs:
     - name: Prepare RPM build tree
       run: |
         rpmdev-setuptree
-        cp SOURCES/* ~/rpmbuild/SOURCES/
 
     - name: Build RPMs
       run: |
