@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - 'SPECS/**'
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,31 +19,31 @@ jobs:
       image: fedora:latest
 
     steps:
-    - name: Checkout
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install tools
+    - name: Install build tools
       run: |
         dnf install -y rpmdevtools rpm-build createrepo_c dnf-plugins-core
 
     - name: Prepare RPM build tree
-      run: |
-        rpmdev-setuptree
+      run: rpmdev-setuptree
 
     - name: Download sources for specs
       run: |
         find SPECS -name '*.spec' | while read spec; do
-            spectool -g -C ~/rpmbuild/SOURCES "$spec"
+          echo "Downloading sources for $spec"
+          spectool -g -C ~/rpmbuild/SOURCES "$spec"
         done
 
-    - name: Install Build Dependencies
+    - name: Install build dependencies
       run: |
         find SPECS -name '*.spec' | while read spec; do
           echo "Installing build dependencies for $spec"
-          dnf -y builddep "$spec" || true  # continue if some deps are missing
+          dnf -y builddep "$spec" || true
         done
 
-    - name: Build RPMs
+    - name: Build RPM packages
       run: |
         find SPECS -name '*.spec' | while read spec; do
           echo "Building $spec"
@@ -54,14 +53,13 @@ jobs:
 
     - name: Collect RPMs
       run: |
-        mkdir repo
+        mkdir -p repo
         cp ~/rpmbuild/RPMS/**/*.rpm repo/ || true
 
-    - name: Generate repo metadata
-      run: |
-        createrepo_c repo/
+    - name: Generate repository metadata
+      run: createrepo_c repo/
 
-    - name: Deploy via GitHub Pages
+    - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
