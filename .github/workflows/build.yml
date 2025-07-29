@@ -1,0 +1,58 @@
+# .github/workflows/build.yml
+name: Build & Publish RPM repo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SPECS/**'
+      - 'SOURCES/**'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: fedora:latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install tools
+      run: |
+        dnf install -y rpmdevtools rpm-build createrepo_c
+
+    - name: Prepare RPM build tree
+      run: |
+        rpmdev-setuptree
+        cp SOURCES/* ~/rpmbuild/SOURCES/
+
+    - name: Build RPMs
+      run: |
+        find SPECS -name '*.spec' | while read spec; do
+          echo "Building $spec"
+          cp "$spec" ~/rpmbuild/SPECS/
+          rpmbuild -ba ~/rpmbuild/SPECS/$(basename "$spec")
+        done
+
+    - name: Collect RPMs
+      run: |
+        mkdir repo
+        cp ~/rpmbuild/RPMS/**/*.rpm repo/ || true
+
+    - name: Generate repo metadata
+      run: |
+        createrepo_c repo/
+
+    - name: Deploy via GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./repo
+        publish_branch: gh-pages

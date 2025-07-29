@@ -1,1 +1,0 @@
-# critos-rpms
