@@ -31,6 +31,12 @@ jobs:
       run: |
         rpmdev-setuptree
 
+    - name: Download sources for specs
+      run: |
+        find SPECS -name '*.spec' | while read spec; do
+            spectool -g -C ~/rpmbuild/SOURCES "$spec"
+        done
+
     - name: Install Build Dependencies
       run: |
         find SPECS -name '*.spec' | while read spec; do
