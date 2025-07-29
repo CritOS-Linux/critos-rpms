@@ -15,9 +15,6 @@ permissions:
 
 jobs:
   build:
-    permissions:
-      contents: write
-      pages: write
     runs-on: ubuntu-latest
 
     container:
