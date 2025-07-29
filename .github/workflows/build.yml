@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'SPECS/**'
+      - 'SOURCES/**'
   workflow_dispatch:
 
 permissions:
@@ -29,6 +30,10 @@ jobs:
 
     - name: Prepare RPM build tree
       run: rpmdev-setuptree
+
+    - name: Copy local source files
+      run: |
+        find SOURCES -type f -exec cp {} ~/rpmbuild/SOURCES/ \;
 
     - name: Download sources for specs
       run: |
