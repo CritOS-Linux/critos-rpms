@@ -26,7 +26,7 @@ jobs:
 
     - name: Install build tools
       run: |
-        dnf install -y rpmdevtools rpm-build createrepo_c dnf-plugins-core
+        dnf install -y rpmdevtools rpm-build createrepo_c dnf-plugins-core git
 
     - name: Prepare RPM build tree
       run: rpmdev-setuptree
