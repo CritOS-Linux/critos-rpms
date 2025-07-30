@@ -1,7 +1,7 @@
 Name:		fedora-logos
 Summary:	Fedora-related icons and pictures
-Version:	43.0.1
-Release:	999%{?dist}.critos
+Version:	42.0.1
+Release:	122%{?dist}.critos42
 URL:		https://pagure.io/fedora-logos
 Source0:	https://pagure.io/fedora-logos/archive/42.0.1/fedora-logos-42.0.1.tar.gz
 Source1:  sidebar-bg.png
