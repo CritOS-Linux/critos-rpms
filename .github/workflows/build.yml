@@ -1,4 +1,4 @@
-name: Build & Publish RPM repo
+name: Build & Publish RPM to COPR
 
 on:
   push:
@@ -7,11 +7,6 @@ on:
       - 'SPECS/**'
       - 'SOURCES/**'
   workflow_dispatch:
-
-permissions:
-  contents: write
-  pages: write
-  id-token: write
 
 jobs:
   build:
@@ -24,50 +19,43 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install build tools
+    - name: Install build tools and copr-cli
       run: |
-        dnf install -y rpmdevtools rpm-build createrepo_c dnf-plugins-core git
+        dnf install -y rpmdevtools rpm-build spectool dnf-plugins-core \
+                       git copr-cli python3-pip
+        pip3 install --upgrade copr-cli
+
+    - name: Configure copr-cli
+      run: |
+        mkdir -p ~/.config
+        echo "[copr-cli]" > ~/.config/copr
+        echo "login = ${{ secrets.COPR_LOGIN }}" >> ~/.config/copr
+        echo "token = ${{ secrets.COPR_TOKEN }}" >> ~/.config/copr
+        echo "username = ${{ secrets.COPR_LOGIN }}" >> ~/.config/copr
 
     - name: Prepare RPM build tree
       run: rpmdev-setuptree
 
-    - name: Copy local source files
+    - name: Copy source files
       run: |
         find SOURCES -type f -exec cp {} ~/rpmbuild/SOURCES/ \;
+        find SPECS -name '*.spec' -exec cp {} ~/rpmbuild/SPECS/ \;
 
     - name: Download sources for specs
       run: |
-        find SPECS -name '*.spec' | while read spec; do
+        find ~/rpmbuild/SPECS -name '*.spec' | while read spec; do
           echo "Downloading sources for $spec"
           spectool -g -C ~/rpmbuild/SOURCES "$spec"
         done
 
-    - name: Install build dependencies
+    - name: Build SRPM and send to COPR
       run: |
-        find SPECS -name '*.spec' | while read spec; do
-          echo "Installing build dependencies for $spec"
-          dnf -y builddep "$spec" || true
+        for spec in ~/rpmbuild/SPECS/*.spec; do
+          echo "Building SRPM for $spec"
+          rpmbuild -bs "$spec"
         done
 
-    - name: Build RPM packages
-      run: |
-        find SPECS -name '*.spec' | while read spec; do
-          echo "Building $spec"
-          cp "$spec" ~/rpmbuild/SPECS/
-          rpmbuild -ba ~/rpmbuild/SPECS/$(basename "$spec") || true
+        for srpm in ~/rpmbuild/SRPMS/*.src.rpm; do
+          echo "Sending $srpm to COPR"
+          copr-cli build krolmiki2011/CritOS "$srpm"
         done
-
-    - name: Collect RPMs
-      run: |
-        mkdir -p repo
-        cp ~/rpmbuild/RPMS/**/*.rpm repo/ || true
-
-    - name: Generate repository metadata
-      run: createrepo_c repo/
-
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./repo
-        publish_branch: gh-pages
